@@ -1,0 +1,205 @@
+{
+  "name": "HR Module 1 - Data Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "options": {}
+      },
+      "id": "18c21a4f-561b-4cd7-bf53-73132e0ee37e",
+      "name": "Google Sheets (Form Trigger)",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "subject:(Job Application) has:attachment"
+        },
+        "options": {
+          "dataPropertyAttachments": "attachments"
+        }
+      },
+      "id": "22bc968c-db51-4043-9828-98e6ff052cf0",
+      "name": "Gmail Trigger (Resume Emails)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "path": "upload-csv",
+        "options": {}
+      },
+      "id": "e6de2dfb-8ca0-410a-b333-64a6c8de6e9e",
+      "name": "Webhook (CSV Bulk Upload)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=python3 /data/python/parse_csv.py {{ $json.body.file_path }}"
+      },
+      "id": "a2ccfdfd-eb7a-4467-9d7a-112233445566",
+      "name": "Execute parse_csv.py",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        480,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "name",
+              "value": "={{ $json[\"Candidate Name\"] || $json[\"name\"] || $json[\"Name\"] || \"\" }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json[\"Email Address\"] || $json[\"email\"] || $json[\"Email\"] || \"\" }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json[\"Phone Number\"] || $json[\"phone\"] || $json[\"Phone\"] || \"\" }}"
+            },
+            {
+              "name": "resume_text",
+              "value": "={{ $json[\"Resume Text\"] || $json[\"resume_text\"] || $json[\"text\"] || \"\" }}"
+            },
+            {
+              "name": "job_role",
+              "value": "={{ $json[\"Job Role\"] || $json[\"job_role\"] || $json[\"Role\"] || \"\" }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json[\"Timestamp\"] || $json[\"timestamp\"] || $json[\"date\"] || $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7662c125-9d32-411a-8bb7-09d57a90ad50",
+      "name": "Standardize Data Schema",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        720,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "ai_screener_workflow_id",
+        "options": {}
+      },
+      "id": "fa2c4fd2-89ab-422f-83a3-d0221e428c00",
+      "name": "Trigger AI Screener Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        950,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Google Sheets (Form Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Standardize Data Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger (Resume Emails)": {
+      "main": [
+        [
+          {
+            "node": "Standardize Data Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (CSV Bulk Upload)": {
+      "main": [
+        [
+          {
+            "node": "Execute parse_csv.py",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute parse_csv.py": {
+      "main": [
+        [
+          {
+            "node": "Standardize Data Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Standardize Data Schema": {
+      "main": [
+        [
+          {
+            "node": "Trigger AI Screener Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "meta": {}
+}

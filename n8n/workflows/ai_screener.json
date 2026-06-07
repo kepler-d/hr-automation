@@ -1,0 +1,271 @@
+{
+  "name": "HR Module 2 - AI Resume Screener",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e4f5a342-990a-4fb4-bf43-982898e6ff01",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python3 /data/python/send_to_ollama.py",
+        "environmentVariables": {
+          "values": [
+            {
+              "name": "JOB_ROLE",
+              "value": "={{ $json.job_role }}"
+            },
+            {
+              "name": "RESUME_TEXT",
+              "value": "={{ $json.resume_text }}"
+            }
+          ]
+        }
+      },
+      "id": "21cd45da-0943-4f9e-a89c-dfd987654321",
+      "name": "Run Ollama Screener Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        420,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "name",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.phone }}"
+            },
+            {
+              "name": "job_role",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.job_role }}"
+            },
+            {
+              "name": "resume_text",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.resume_text }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.timestamp }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ JSON.parse($json.stdout).score }}"
+            },
+            {
+              "name": "reason",
+              "value": "={{ JSON.parse($json.stdout).reason }}"
+            },
+            {
+              "name": "skills_matched",
+              "value": "={{ JSON.stringify(JSON.parse($json.stdout).skills_matched) }}"
+            },
+            {
+              "name": "missing_skills",
+              "value": "={{ JSON.stringify(JSON.parse($json.stdout).missing_skills) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8e3c6f1-cc91-4bc9-88aa-1224dcf5d1e2",
+      "name": "Parse and Merge AI Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        640,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ Number($json.score) }}",
+              "operation": "largerEqual",
+              "value2": 65
+            }
+          ]
+        }
+      },
+      "id": "ef82a7f5-a22a-4467-bc1a-555566667777",
+      "name": "Check Score >= 65",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        860,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "scheduler_workflow_id",
+        "options": {}
+      },
+      "id": "b182df76-1e9a-4ad9-bf9d-f21e5491763c",
+      "name": "Trigger Interview Scheduler",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "email_sender_workflow_id",
+        "options": {}
+      },
+      "id": "c182df76-1e9a-4ad9-bf9d-f21e5491763d",
+      "name": "Trigger Rejection Email",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Phone": "={{ $json.phone }}",
+            "Job Role": "={{ $json.job_role }}",
+            "Resume Text": "={{ $json.resume_text }}",
+            "Score": "={{ $json.score }}",
+            "Reason": "={{ $json.reason }}",
+            "Skills Matched": "={{ $json.skills_matched }}",
+            "Missing Skills": "={{ $json.missing_skills }}",
+            "Status": "={{ Number($json.score) >= 65 ? 'Shortlisted' : 'Rejected' }}",
+            "Meeting Link": "={{ $json.meeting_link || '' }}",
+            "Meet Link": "={{ $json.meet_link || '' }}"
+          },
+          "matchingColumns": [],
+          "shortColMappingMode": "none"
+        },
+        "options": {}
+      },
+      "id": "d98ab34c-d90e-43cf-be8c-9c7a65432d9e",
+      "name": "Log to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1400,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Ollama Screener Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Ollama Screener Script": {
+      "main": [
+        [
+          {
+            "node": "Parse and Merge AI Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Merge AI Results": {
+      "main": [
+        [
+          {
+            "node": "Check Score >= 65",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Score >= 65": {
+      "main": [
+        [
+          {
+            "node": "Trigger Interview Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trigger Rejection Email",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Trigger Interview Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Rejection Email": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "meta": {}
+}

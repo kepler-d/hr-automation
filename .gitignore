@@ -1,0 +1,30 @@
+# Environment variables
+.env
+
+# Python caches and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env/
+.venv/
+
+# Node/React dependencies
+node_modules/
+dist/
+build/
+.eslintcache
+.vite/
+
+# SQLite local fallback databases
+*.db
+
+# Temporary test logs or PDFs
+scratch/*.pdf
+scratch/*.json
+scratch/*.csv
+scratch/*.txt
+*.pdf

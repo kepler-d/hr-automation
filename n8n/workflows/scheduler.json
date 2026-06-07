@@ -1,0 +1,169 @@
+{
+  "name": "HR Module 4 - Interview Scheduler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e4f5a342-990a-4fb4-bf43-982898e6ff03",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $today.plus({days: 3}).set({hour: 10, minute: 0, second: 0, millisecond: 0}).toISO() }}",
+        "end": "={{ $today.plus({days: 3}).set({hour: 10, minute: 30, second: 0, millisecond: 0}).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.email }}",
+            "={{ $env.HR_MANAGER_EMAIL || 'manager@example.com' }}"
+          ],
+          "conferenceData": {
+            "createRequest": {
+              "conferenceSolutionKey": {
+                "type": "hangoutsMeet"
+              },
+              "requestId": "={{ $json.email + '-' + $now.toMillis() }}"
+            }
+          },
+          "description": "=Initial technical interview for the {{ $json.job_role }} position.\nEvaluated Score: {{ $json.score }}/100\n\nAI Screener Remarks:\n{{ $json.reason }}",
+          "summary": "=Interview: {{ $json.name }} for {{ $json.job_role }}"
+        }
+      },
+      "id": "0d98ac1b-f89d-4c3e-bd23-456789abcdef",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        420,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "name",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.phone }}"
+            },
+            {
+              "name": "job_role",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.job_role }}"
+            },
+            {
+              "name": "resume_text",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.resume_text }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.timestamp }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.score }}"
+            },
+            {
+              "name": "reason",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.reason }}"
+            },
+            {
+              "name": "skills_matched",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.skills_matched }}"
+            },
+            {
+              "name": "missing_skills",
+              "value": "={{ $node[\"Execute Workflow Trigger\"].json.missing_skills }}"
+            },
+            {
+              "name": "meeting_link",
+              "value": "={{ $json.htmlLink }}"
+            },
+            {
+              "name": "meet_link",
+              "value": "={{ $json.conferenceData.entryPoints.find(ep => ep.entryPointType === 'video').uri }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa213e4b-bbca-46de-834f-01d02c03effd",
+      "name": "Append Meeting Info",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        640,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "email_sender_workflow_id",
+        "options": {}
+      },
+      "id": "22bc968c-db51-4043-9828-98e6ff052cf4",
+      "name": "Trigger Shortlist Email",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        860,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Append Meeting Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Meeting Info": {
+      "main": [
+        [
+          {
+            "node": "Trigger Shortlist Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "meta": {}
+}

@@ -1,0 +1,145 @@
+{
+  "name": "HR Module 5 - Weekly Report",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "hour": 9,
+              "weekday": "1"
+            }
+          ]
+        }
+      },
+      "id": "c182df76-1e9a-4ad9-bf9d-f21e5491763e",
+      "name": "Cron Trigger (Monday 9AM)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": ""
+        },
+        "options": {}
+      },
+      "id": "d98ab34c-d90e-43cf-be8c-9c7a65432d9f",
+      "name": "Read Candidate Sheet Logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        420,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ JSON.stringify($json) }}' | python3 /data/python/generate_report.py - /tmp/weekly_report.pdf"
+      },
+      "id": "21cd45da-0943-4f9e-a89c-dfd987654322",
+      "name": "Compile PDF Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        640,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "/tmp/weekly_report.pdf",
+        "dataPropertyName": "attachment",
+        "options": {}
+      },
+      "id": "b182df76-1e9a-4ad9-bf9d-f21e5491763e",
+      "name": "Read PDF Binary Data",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        860,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.HR_MANAGER_EMAIL || 'manager@example.com' }}",
+        "subject": "=Weekly HR Candidate Screening Summary Report",
+        "html": "=<h3>Hello HR Manager,</h3><p>Please find attached the weekly candidates summary and AI evaluation metrics report generated automatically by the HR Automation System.</p><p>This report includes:</p><ul><li>Total applicant count</li><li>Shortlisted percentage rate</li><li>Average AI screening score</li><li>Top candidate details</li><li>Frequency breakdown of matched skills</li></ul><br><p>Best regards,</p><p>HR System Automations</p>",
+        "attachments": "attachment",
+        "options": {}
+      },
+      "id": "22bc968c-db51-4043-9828-98e6ff052cf5",
+      "name": "Email PDF to Manager",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Trigger (Monday 9AM)": {
+      "main": [
+        [
+          {
+            "node": "Read Candidate Sheet Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Candidate Sheet Logs": {
+      "main": [
+        [
+          {
+            "node": "Compile PDF Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile PDF Report": {
+      "main": [
+        [
+          {
+            "node": "Read PDF Binary Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PDF Binary Data": {
+      "main": [
+        [
+          {
+            "node": "Email PDF to Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "meta": {}
+}
